@@ -309,6 +309,28 @@ void* get_libc()
     return h;
 }
 
+int posix_open(const char* path, int flags, mode_t mode)
+{
+    typedef int func_t(const char*, int, ...);
+    static func_t* f = (func_t*) dlsym(get_libc(), "open");
+    flags |= O_LARGEFILE;
+    return (*f)(path, flags, mode);
+}
+
+extern "C" int open(const char *path, int flags, ...)
+{
+    mode_t mode = 0;
+    if (flags & O_CREAT)
+    {
+        va_list v;
+        va_start(v, flags);
+        mode = (mode_t) va_arg(v, int);
+        va_end(v);
+    }
+
+    return posix_open(path, flags, mode);
+}
+
 // NOTE: remove getifaddrs and freeifaddrs when supported API >= 24
 extern "C" int getifaddrs(struct ifaddrs** __list_ptr)
 {
